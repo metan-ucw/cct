@@ -19,7 +19,7 @@ def perror(filename, line, lineno, row, error):
     print(' ' * row + '^\n')
     exit(1)
 
-def transform(filename, lines, include_dirs):
+def transform(filename, lines, include_dirs, startindent):
     out = []
     lastindent = 0
     lineno = 0
@@ -53,7 +53,7 @@ def transform(filename, lines, include_dirs):
                 except Exception as err:
                     perror(filename, l, lineno, len(l) - len(include_filename), str(err))
 
-                out = out + transform(include_filename, infile.readlines(), include_dirs)
+                out = out + transform(include_filename, infile.readlines(), include_dirs, lastindent)
 
                 infile.close()
             else:
@@ -65,14 +65,11 @@ def transform(filename, lines, include_dirs):
                         lastindent += DEFAULT_INDENT
                     if re.match('\s*return\s+.*', code):
                         lastindent -= DEFAULT_INDENT
-                out.append(code)
+                out.append(' ' * startindent + code)
         else:
-            # escape \ and "
-            l = l.replace("\\", "\\\\")
-            l = l.replace('"', '\\"')
             # parse {{ expression }} blocks
             tokens = re.split('({{|}})', l)
-            code = 'cct_write("'
+            code = 'cct.write("'
             row = 0
             in_code = False
             for token in tokens:
@@ -89,6 +86,9 @@ def transform(filename, lines, include_dirs):
                     else:
                         perror(filename, l, lineno, row, 'Unexpected }}')
                 else:
+                    # escape \ and " but only in verbatim mode
+                    if not in_code:
+                        token = token.replace("\\", "\\\\").replace('"', '\\"')
                     code = code + token
 
                 row += len(token)
@@ -96,7 +96,7 @@ def transform(filename, lines, include_dirs):
             if in_code:
                 perror(filename, l, lineno, row, 'Unterminated {{')
 
-            out.append(' ' * lastindent + code + '")')
+            out.append(' ' * (lastindent + startindent) + code + '")')
 
     return out
 
@@ -106,40 +106,53 @@ header = [
     "# Generated file do _not_ edit by hand!",
     "#",
     "from sys import exit",
+    "from os import remove, path",
+    "",
+    "class cct:",
+    "    def __init__(self, outfile_path, filename):",
+    "        self.first = True",
+    "        self.outfile_path = outfile_path",
+    "        self.filename = filename",
+    "        try:",
+    "            self.outfile = open(outfile_path, 'w')",
+    "        except Exception as err:",
+    "            self.error('Failed to open file: ' + outfile_path + ' : ' + str(err))",
+    "",
+    "    def error(self, string):",
+    "        self.outfile.close()",
+    "        remove(self.outfile_path)",
+    "        print('cct: error: ' + string)",
+    "        exit(1)",
+    "",
+    "    def write(self, line):",
+    "        if self.first:",
+    "            self.first = False",
+    "            if 'cct_header' in globals():",
+    "                cct_header(path.basename(self.outfile_path), self.filename)",
+    "        self.outfile.write(line)",
+    "        self.outfile.write('\\n')",
+    "",
+    "    def close(self):",
+    "        if 'cct_footer' in globals():",
+    "            cct_footer(path.basename(self.outfile_path), self.filename)",
+    "",
+    "        try:",
+    "            self.outfile.close()",
+    "        except Exception as err:",
+    "            self.error('Failed to write ' + self.outfile_path + ' : ' + str(err))",
     "",
 ]
 
-functions = [
-    "def cct_error(string):",
-    "    print('cct: error: ' + string)",
-    "    exit(1)",
-    "",
-    "def cct_write(line):",
-    "    cct_outfile.write(line)",
-    "    cct_outfile.write('\\n')",
-    "",
-    "try:",
-    "    global cct_outfile",
-    "    cct_outfile = open(cct_outfile_path, 'w')",
-    "except Exception as err:",
-    "    cct_error('Failed to open file: ' + cct_outfile_path + ' : ' + str(err))",
-    "",
-]
 
 footer = [
-    "",
-    "try:",
-    "    cct_outfile.close()",
-    "except Exception as err:",
-    "    cct_error('Failed to write ' + cct_outfile_path + ' : ' + str(err))",
+    "cct.close()",
 ]
 
 def generate(filename, lines, include_dirs, outfile):
     out = header
-    out.append("cct_outfile_path = '%s'" % outfile)
+    out.append("cct = cct('%s', '%s')" % (outfile, filename))
     out.append("")
-    out = out + functions
-    out = out + transform(filename, lines, include_dirs)
+    out = out + transform(filename, lines, include_dirs, 0)
     out = out + footer
     return '\n'.join(out)
 
@@ -152,7 +165,6 @@ def usage():
     print('-I\n\tAdds include path(s)')
     print('-o\n\tSets output file')
     print('-v\n\tSets verbose mode')
-    print('-c\n\tConfig to be loaded parser globals');
     print('-h | --help\n\tPrints this help.')
 
 def main():
@@ -178,8 +190,6 @@ def main():
             verbose = True
         elif opt == '-o':
             outfile = arg
-        elif opt == '-c':
-            config = arg
 
     if len(args) != 1:
         error('No input files.')
@@ -193,7 +203,6 @@ def main():
     if verbose:
         print("Settings\n--------")
         print("Include Dirs:  %s" % include_dirs)
-        print("Config:        %s" % config)
         print("Template File: %s" % args[0])
         print("Output File:   %s" % outfile)
 
