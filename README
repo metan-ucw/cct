@@ -44,3 +44,24 @@ unsigned int primes[] = {
 
 #endif /* PRIMES_H */
 -------------------------------------------
+
+To generate simple box image filter
+-------------------------------------------
+@ def sum(arr):
+{{ arr }}_out[x][y] = 0;
+@     for i in ['- 1', '+ 0', '+ 1']:
+@         for j in ['- 1', '+ 0', '+ 1']:
+{{ arr }}_out[x][y] += {{ arr }}[x {{ i }}][y {{ j }}];
+@         end
+@     end
+{{ arr }}_out[x][y] /= 9;
+@ end
+
+for (x = 1; x < w - 1; x++) {
+	for (y = 1; y < h - 1; y++) {
+		@ sum('R')
+		@ sum('G')
+		@ sum('B')
+	}
+}
+-------------------------------------------

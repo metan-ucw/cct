@@ -27,7 +27,9 @@ def transform(filename, lines, include_dirs, startindent):
     for l in lines:
         lineno += 1
         l = l.rstrip('\n')
-        if l.startswith('@'):
+        if re.match('\s*@.*', l):
+            padd = l[:len(l) - len(l.lstrip())]
+            l = l.lstrip()
             # lines with '@ end' only decrease the indent
             if re.match('@\s*end\s*', l):
                 lastindent -= DEFAULT_INDENT
@@ -65,7 +67,11 @@ def transform(filename, lines, include_dirs, startindent):
                         lastindent += DEFAULT_INDENT
                     if re.match('\s*return\s+.*', code):
                         lastindent -= DEFAULT_INDENT
+                if (padd):
+                   out.append(' ' * startindent + 'cct.set_padd("%s")' % padd)
                 out.append(' ' * startindent + code)
+                if (padd):
+                   out.append(' ' * startindent + 'cct.set_padd("")')
         else:
             # parse {{ expression }} blocks
             tokens = re.split('({{|}})', l)
@@ -111,8 +117,9 @@ header = [
     "class cct:",
     "    def __init__(self, outfile_path, filename):",
     "        self.first = True",
-    "        self.outfile_path = outfile_path",
     "        self.filename = filename",
+    "        self.outfile_path = outfile_path",
+    "        self.padd = ''",
     "        try:",
     "            self.outfile = open(outfile_path, 'w')",
     "        except Exception as err:",
@@ -129,8 +136,10 @@ header = [
     "            self.first = False",
     "            if 'cct_header' in globals():",
     "                cct_header(path.basename(self.outfile_path), self.filename)",
-    "        self.outfile.write(line)",
-    "        self.outfile.write('\\n')",
+    "        self.outfile.write(self.padd + line + '\\n')",
+    "",
+    "    def set_padd(self, padd):",
+    "        self.padd = padd",
     "",
     "    def close(self):",
     "        if 'cct_footer' in globals():",
