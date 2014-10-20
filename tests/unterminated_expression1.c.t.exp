@@ -1,0 +1,5 @@
+unterminated_expression1.c.t:1:2: error: Unterminated {{
+
+{{
+  ^
+

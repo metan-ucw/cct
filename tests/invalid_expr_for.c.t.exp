@@ -1,0 +1,4 @@
+  File "invalid_expr_for.c.py", line 23
+    for i in  #$!
+                ^
+SyntaxError: invalid syntax

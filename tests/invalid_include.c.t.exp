@@ -1,0 +1,5 @@
+invalid_include.c.t:1:9: error: Expected filename
+
+@ include
+         ^
+

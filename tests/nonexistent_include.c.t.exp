@@ -1,0 +1,5 @@
+nonexistent_include.c.t:1:10: error: Failed to locate 'does_not_exists.t' in ['.']
+
+@ include does_not_exists.t
+          ^
+
