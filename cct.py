@@ -51,7 +51,7 @@ def transform(filename, lines, include_dirs, startindent):
                            (include_filename, include_dirs))
 
                 try:
-                    infile = open(include_filename, 'r')
+                    infile = open(include_path, 'r')
                 except Exception as err:
                     perror(filename, l, lineno, len(l) - len(include_filename), str(err))
 
