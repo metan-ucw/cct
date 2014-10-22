@@ -10,8 +10,10 @@ Fast and efficient Python based templating
 language designed for generating source code.
 
 
-Usage: cct [-Idir] [-v] [-o outfile] file.c.t
+Usage: cct [-E] [-ilevel] [-Idir(s)] [-v] [-o outfile] file.c.t
 
+-E stops at first phase, leaves python script
+-i sets indenntation depth, default is 4
 -I adds include search pats
 -o sets output file name
 -v sets verbose mode

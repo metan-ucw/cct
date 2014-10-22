@@ -11,15 +11,13 @@ import getopt
 from sys import argv, exit
 from os import path, remove, system
 
-DEFAULT_INDENT = 4
-
 def perror(filename, line, lineno, row, error):
     print('%s:%i:%i: error: %s\n' % (filename, lineno, row, error))
     print(line)
     print(' ' * row + '^\n')
     exit(1)
 
-def transform(filename, lines, include_dirs, startindent):
+def transform(filename, lines, include_dirs, startindent, indent_depth):
     out = []
     lastindent = 0
     lineno = 0
@@ -60,7 +58,8 @@ def transform(filename, lines, include_dirs, startindent):
                     perror(filename, l, lineno, len(l) - len(include_filename), str(err))
 
                 out = out + transform(include_filename, infile.readlines(),
-                                      include_dirs, lastindent + startindent)
+                                      include_dirs, lastindent + startindent,
+                                      indent_depth)
 
                 infile.close()
             else:
@@ -69,9 +68,9 @@ def transform(filename, lines, include_dirs, startindent):
                 if code and not re.match('^[ ]*#', code):
                     lastindent = len(code) - len(code.lstrip())
                     if code.endswith(':'):
-                        lastindent += DEFAULT_INDENT
+                        lastindent += indent_depth
                     if re.match('\s*return\s+.*', code):
-                        lastindent -= DEFAULT_INDENT
+                        lastindent -= indent_depth
                 if (padd):
                    out.append(' ' * startindent + 'cct.set_padd("%s")' % padd)
                 out.append(' ' * startindent + code)
@@ -167,12 +166,12 @@ footer = [
     "cct.close()",
 ]
 
-def generate(filename, lines, include_dirs, outfile):
+def generate(filename, lines, include_dirs, indent_depth, outfile):
     out = header
     out.append("cct = cct('%s', '%s')" % (outfile, filename))
     out.append("try:")
-    out = out + transform(filename, lines, include_dirs, 4)
-    out = out + footer
+    res = transform(filename, lines, include_dirs, indent_depth, indent_depth)
+    out = out + res + footer
     return '\n'.join(out)
 
 def error(error):
@@ -181,15 +180,16 @@ def error(error):
 
 def usage():
     print('Usage:\ncct [-Idir] [-v] [-o outfile] file.c.t\n')
-    print('-I\n\tAdds include path(s)')
     print('-E\n\tStops at first phase, leaves python script')
+    print('-i\n\tSets indenntation depth, default is 4')
+    print('-I\n\tAdds include path(s)')
     print('-o\n\tSets output file')
     print('-v\n\tSets verbose mode')
     print('-h | --help\n\tPrints this help.')
 
 def main():
     try:
-        opts, args = getopt.getopt(argv[1:], 'Eho:I:v', ['help'])
+        opts, args = getopt.getopt(argv[1:], 'Eho:i:I:v', ['help'])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -198,13 +198,15 @@ def main():
     include_dirs = ['.']
     verbose = False
     outfile = ''
-    config = ''
     execute = True
+    indent_depth = 4
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             usage()
             exit(0)
+        elif opt == '-i':
+            indent_depth = int(arg)
         elif opt == '-I':
             include_dirs.append(arg)
         elif opt == '-v':
@@ -225,12 +227,14 @@ def main():
 
     if verbose:
         print("Settings\n--------")
-        print("Include Dirs:  %s" % include_dirs)
-        print("Template File: %s" % args[0])
-        print("Output File:   %s" % outfile)
+        print("Include Dirs:      %s" % include_dirs)
+        print("Template File:     %s" % args[0])
+        print("Output File:       %s" % outfile)
+        print("Indentation Depth: %i" % indent_depth)
+        print("")
 
     with open(args[0], 'rt') as f:
-        t = generate(args[0], f.readlines(), include_dirs, outfile)
+        t = generate(args[0], f.readlines(), include_dirs, indent_depth, outfile)
 
         script_name = outfile + '.py'
 
