@@ -34,7 +34,7 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
             l = l.lstrip()
             # lines with '@ end' ends intent block by setting new indent
             if re.match('@\s*end\s*', l):
-                lastindent = len(l[:2]) - len(l[:2].lstrip())
+                lastindent = len(l[2:]) - len(l[2:].lstrip())
             elif re.match('@\s*include.*', l):
                 include_filename = re.sub('@\s*include\s*', '', l)
                 include_path = ''
