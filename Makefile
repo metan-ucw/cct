@@ -15,4 +15,4 @@ endif
 install:
 	install -d "$(BINDIR)"
 	install -m 775 cct.py "$(BINDIR)"
-	cd "$(BINDIR)" && ln -s cct.py cct
+	cd "$(BINDIR)" && ln -sf cct.py cct
