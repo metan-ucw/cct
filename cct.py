@@ -182,13 +182,14 @@ def error(error):
 def usage():
     print('Usage:\ncct [-Idir] [-v] [-o outfile] file.c.t\n')
     print('-I\n\tAdds include path(s)')
+    print('-E\n\tStops at first phase, leaves python script')
     print('-o\n\tSets output file')
     print('-v\n\tSets verbose mode')
     print('-h | --help\n\tPrints this help.')
 
 def main():
     try:
-        opts, args = getopt.getopt(argv[1:], 'c:ho:I:v', ['help'])
+        opts, args = getopt.getopt(argv[1:], 'Eho:I:v', ['help'])
     except getopt.GetoptError as err:
         print(str(err))
         usage()
@@ -198,6 +199,7 @@ def main():
     verbose = False
     outfile = ''
     config = ''
+    execute = True
 
     for opt, arg in opts:
         if opt in ('-h', '--help'):
@@ -209,6 +211,8 @@ def main():
             verbose = True
         elif opt == '-o':
             outfile = arg
+        elif opt == '-E':
+            execute = False
 
     if len(args) != 1:
         error('No input files.')
@@ -242,7 +246,9 @@ def main():
         except Exception as err:
             error('Failed to close file: ' + script_name + ' : ' + str(err))
 
-        system('python ' + script_name)
+        if execute:
+            system('python ' + script_name)
+            remove(script_name)
 
 if __name__ == '__main__':
     main()
