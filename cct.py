@@ -59,7 +59,8 @@ def transform(filename, lines, include_dirs, startindent):
                 except Exception as err:
                     perror(filename, l, lineno, len(l) - len(include_filename), str(err))
 
-                out = out + transform(include_filename, infile.readlines(), include_dirs, lastindent)
+                out = out + transform(include_filename, infile.readlines(),
+                                      include_dirs, lastindent + startindent)
 
                 infile.close()
             else:
@@ -129,9 +130,12 @@ header = [
     "        except Exception as err:",
     "            self.error('Failed to open file: ' + outfile_path + ' : ' + str(err))",
     "",
-    "    def error(self, string):",
+    "    def error_cleanup(self):",
     "        self.outfile.close()",
     "        remove(self.outfile_path)",
+    "",
+    "    def error(self, string):",
+    "        self.error_cleanup()",
     "        print('cct: error: ' + string)",
     "        exit(1)",
     "",
@@ -153,19 +157,21 @@ header = [
     "            self.outfile.close()",
     "        except Exception as err:",
     "            self.error('Failed to write ' + self.outfile_path + ' : ' + str(err))",
-    "",
 ]
 
 
 footer = [
+    "except Exception:",
+    "    cct.error_cleanup()",
+    "    raise",
     "cct.close()",
 ]
 
 def generate(filename, lines, include_dirs, outfile):
     out = header
     out.append("cct = cct('%s', '%s')" % (outfile, filename))
-    out.append("")
-    out = out + transform(filename, lines, include_dirs, 0)
+    out.append("try:")
+    out = out + transform(filename, lines, include_dirs, 4)
     out = out + footer
     return '\n'.join(out)
 
