@@ -14,7 +14,6 @@ unsigned int primes[] = {
 @             break
 @     if is_prime:
 	{{ i }},
-@     end
 @ end
 };
 
