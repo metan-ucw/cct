@@ -1,5 +1,5 @@
 @ def cct_header(filename, template):
-@     include licence.t
+@     include license.t
 @     from datetime import datetime
 /*
  * {{ filename }}
