@@ -98,11 +98,8 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
                 code = re.sub('\t', '        ', l[2:]).rstrip()
                 # full-line comments do not change last indent
                 if code and not re.match('^[ ]*#', code):
-                    lastindent = len(code) - len(code.lstrip())
                     if code.endswith(':'):
-                        lastindent += indent_depth
-                    if re.match('\s*return\s+.*', code):
-                        lastindent -= indent_depth
+                        lastindent = len(code) - len(code.lstrip()) + indent_depth
                 if (padd):
                    out.append(' ' * startindent + 'cct.set_padd("%s")' % padd)
                 out.append(' ' * startindent + code)
