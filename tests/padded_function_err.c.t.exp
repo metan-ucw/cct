@@ -1,0 +1,5 @@
+padded_function_err.c.t:5:22: error: Only one {@ call() @} per line is allowed
+
+	{@ func() @} {@ func() @}
+                      ^
+

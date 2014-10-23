@@ -17,6 +17,38 @@ def perror(filename, line, lineno, row, error):
     print(' ' * row + '^\n')
     exit(1)
 
+# parse {{ expression }} blocks, escape special chars
+def transform_verbatim(filename, line, lineno, startrow=0):
+    tokens = re.split('({{|}})', line)
+    code = '"'
+    row = 0
+    in_code = False
+    for token in tokens:
+        if token == '{{':
+            if in_code:
+                perror(filename, line, lineno, row + startrow, 'Unexpected {{')
+            else:
+                in_code = True
+                code = code + '" + str('
+        elif token == '}}':
+            if in_code:
+                in_code = False
+                code = code + ') + "'
+            else:
+                perror(filename, line, lineno, row + startrow, 'Unexpected }}')
+        else:
+            # escape \ and " but only in verbatim mode
+            if not in_code:
+                token = token.replace("\\", "\\\\").replace('"', '\\"')
+            code = code + token
+
+        row += len(token)
+
+    if in_code:
+        perror(filename, line, lineno, row + startrow, 'Unterminated {{')
+
+    return code + '"'
+
 def transform(filename, lines, include_dirs, startindent, indent_depth):
     out = []
     lastindent = 0
@@ -76,37 +108,23 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
                 out.append(' ' * startindent + code)
                 if (padd):
                    out.append(' ' * startindent + 'cct.set_padd("")')
+        # special handling for {@ call() @}
+        elif re.match('.*{@.*@}.*', l):
+            tokens = re.split('{@|@}', l)
+            if len(tokens) > 3:
+                row = len((tokens[0] + tokens[1] + tokens[2]).replace('\t', '         '))
+                perror(filename, l, lineno, row + 4,
+                       "Only one {@ call() @} per line is allowed")
+            prefix = transform_verbatim(filename, tokens[0], lineno)
+            startrow = len((tokens[0] + tokens[1]).replace('\t', '        ')) + 2
+            suffix = transform_verbatim(filename, tokens[2], lineno, startrow)
+            out.append(' ' * (lastindent + startindent) + 'cct.set_prefix(' + prefix + ')')
+            out.append(' ' * (lastindent + startindent) + 'cct.set_suffix(' + suffix + ')')
+            out.append(' ' * (lastindent + startindent) + tokens[1].strip())
+            out.append(' ' * (lastindent + startindent) + 'cct.reset()')
         else:
-            # parse {{ expression }} blocks
-            tokens = re.split('({{|}})', l)
-            code = 'cct.write("'
-            row = 0
-            in_code = False
-            for token in tokens:
-                if token == '{{':
-                    if in_code:
-                        perror(filename, l, lineno, row, 'Unexpected {{')
-                    else:
-                        in_code = True
-                        code = code + '" + str('
-                elif token == '}}':
-                    if in_code:
-                        in_code = False
-                        code = code + ') + "'
-                    else:
-                        perror(filename, l, lineno, row, 'Unexpected }}')
-                else:
-                    # escape \ and " but only in verbatim mode
-                    if not in_code:
-                        token = token.replace("\\", "\\\\").replace('"', '\\"')
-                    code = code + token
-
-                row += len(token)
-
-            if in_code:
-                perror(filename, l, lineno, row, 'Unterminated {{')
-
-            out.append(' ' * (lastindent + startindent) + code + '")')
+            code = transform_verbatim(filename, l, lineno)
+            out.append(' ' * (lastindent + startindent) + 'cct.write(' +  code + ')')
 
     return out
 
@@ -123,7 +141,8 @@ header = [
     "        self.first = True",
     "        self.filename = filename",
     "        self.outfile_path = outfile_path",
-    "        self.padd = ''",
+    "        self.suffix = ''",
+    "        self.prefix = ''",
     "        try:",
     "            self.outfile = open(outfile_path, 'w')",
     "        except Exception as err:",
@@ -143,10 +162,17 @@ header = [
     "            if 'cct_header' in globals():",
     "                self.first = False",
     "                cct_header(path.basename(self.outfile_path), self.filename)",
-    "        self.outfile.write(self.padd + line + '\\n')",
+    "        self.outfile.write(self.prefix + line + self.suffix + '\\n')",
     "",
-    "    def set_padd(self, padd):",
-    "        self.padd = padd",
+    "    def set_prefix(self, prefix):",
+    "        self.prefix = prefix",
+    "",
+    "    def set_suffix(self, suffix):",
+    "        self.suffix = suffix",
+    "",
+    "    def reset(self):",
+    "        self.suffix = ''",
+    "        self.prefix = ''",
     "",
     "    def close(self):",
     "        if 'cct_footer' in globals():",
@@ -156,6 +182,7 @@ header = [
     "            self.outfile.close()",
     "        except Exception as err:",
     "            self.error('Failed to write ' + self.outfile_path + ' : ' + str(err))",
+    "",
 ]
 
 
@@ -169,6 +196,7 @@ footer = [
 def generate(filename, lines, include_dirs, indent_depth, outfile):
     out = header
     out.append("cct = cct('%s', '%s')" % (outfile, filename))
+    out.append("")
     out.append("try:")
     res = transform(filename, lines, include_dirs, indent_depth, indent_depth)
     out = out + res + footer

@@ -1,0 +1,5 @@
+unterminated_expression4.c.t:1:23: error: Unterminated {{
+
+{{ 10 }} And another {{
+                       ^
+

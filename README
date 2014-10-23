@@ -61,9 +61,9 @@ To generate simple box image filter
 
 for (x = 1; x < w - 1; x++) {
 	for (y = 1; y < h - 1; y++) {
-		@ sum('R')
-		@ sum('G')
-		@ sum('B')
+		{@ sum('R') @}
+		{@ sum('G') @}
+		{@ sum('B') @}
 	}
 }
 -------------------------------------------
