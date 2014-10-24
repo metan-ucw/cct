@@ -13,6 +13,7 @@ Group: Devel/Tools/Other
 Url: https://github.com/metan-ucw/cct
 Source: cct-%{version}.tar.bz2
 BuildRoot: %{_tmppath}/%{name}_%{version}-buildroot
+BuildArch: noarch
 Requires: python
 
 %description
