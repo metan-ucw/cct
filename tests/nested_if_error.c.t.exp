@@ -1,4 +1,4 @@
 Traceback (most recent call last):
-  File "nested_if_error.c.py", line 59, in <module>
+  File "nested_if_error.c.py", line 63, in <module>
     if error:
 NameError: name 'error' is not defined
