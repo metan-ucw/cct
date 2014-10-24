@@ -29,7 +29,7 @@ from it. The Python script is then executed
 and generates the desired source code.
 
 Given this choice the whole CCT engine is
-just 250 lines of python code.
+just about 300 lines of python code.
 
 
 Basic CCT code structure

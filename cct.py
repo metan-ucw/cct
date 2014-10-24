@@ -184,7 +184,7 @@ header = [
 
 
 footer = [
-    "except Exception:",
+    "except Exception as err:",
     "    cct.error_cleanup()",
     "    raise",
     "cct.close()",
@@ -211,6 +211,19 @@ def usage():
     print('-o\n\tSets output file')
     print('-v\n\tSets verbose mode')
     print('-h | --help\n\tPrints this help.')
+
+def write_script(script_name, t):
+    try:
+        result = open(script_name, 'w')
+    except Exception as err:
+        error('Failed to open file: ' + script_name + ' : ' + str(err))
+
+    result.write(t)
+
+    try:
+        result.close()
+    except Exception as err:
+        error('Failed to close file: ' + script_name + ' : ' + str(err))
 
 def main():
     try:
@@ -263,21 +276,19 @@ def main():
 
         script_name = outfile + '.py'
 
-        try:
-            result = open(script_name, 'w')
-        except Exception as err:
-            error('Failed to open file: ' + script_name + ' : ' + str(err))
-
-        result.write(t)
-
-        try:
-            result.close()
-        except Exception as err:
-            error('Failed to close file: ' + script_name + ' : ' + str(err))
-
         if execute:
-            system('python ' + script_name)
-            remove(script_name)
+            try:
+                glob = {}
+                exec(t, glob)
+            except Exception:
+                # Something failed fallback to writing file
+                # and executing it because the error trace
+                # from exec() tends to be less informative
+                write_script(script_name, t)
+                system('python ' + script_name)
+                remove(script_name)
+        else:
+            write_script(script_name, t)
 
 if __name__ == '__main__':
     main()
