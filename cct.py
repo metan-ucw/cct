@@ -182,7 +182,6 @@ header = [
     "",
 ]
 
-
 footer = [
     "except Exception as err:",
     "    cct.error_cleanup()",
@@ -287,6 +286,7 @@ def main():
                 write_script(script_name, t)
                 system('python ' + script_name)
                 remove(script_name)
+                exit(1)
         else:
             write_script(script_name, t)
 
