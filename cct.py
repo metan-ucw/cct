@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Distributed under GPLv2.1 or any later
 #
@@ -8,7 +8,7 @@
 
 import re
 import getopt
-from sys import argv, exit
+from sys import argv, executable, exit
 from os import path, remove, system
 
 def perror(filename, line, lineno, row, error):
@@ -61,14 +61,14 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
         if l == '@':
             continue;
 
-        if re.match('\s*@\s.*', l):
+        if re.match(r'\s*@\s.*', l):
             padd = l[:len(l) - len(l.lstrip())]
             l = l.lstrip()
             # lines with '@ end' ends intent block by setting new indent
-            if re.match('@\s*end\s*', l):
+            if re.match(r'@\s*end\s*', l):
                 lastindent = len(l[2:]) - len(l[2:].lstrip())
-            elif re.match('@\s*include.*', l):
-                include_filename = re.sub('@\s*include\s*', '', l)
+            elif re.match(r'@\s*include.*', l):
+                include_filename = re.sub(r'@\s*include\s*', '', l)
                 include_path = ''
 
                 if not include_filename:
@@ -97,7 +97,7 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
             else:
                 code = re.sub('\t', '        ', l[2:]).rstrip()
                 # full-line comments do not change last indent
-                if code and not re.match('^[ ]*#', code):
+                if code and not re.match(r'^[ ]*#', code):
                     if code.endswith(':'):
                         lastindent = len(code) - len(code.lstrip()) + indent_depth
                 if (padd):
@@ -126,7 +126,7 @@ def transform(filename, lines, include_dirs, startindent, indent_depth):
     return out
 
 header = [
-    "#!/usr/bin/env python",
+    "#!/usr/bin/env python3",
     "#",
     "# Generated file do _not_ edit by hand!",
     "#",
@@ -288,7 +288,7 @@ def main():
                 # and executing it because the error trace
                 # from exec() tends to be less informative
                 write_script(script_name, t)
-                system('python ' + script_name)
+                system(executable + ' ' + script_name)
                 remove(script_name)
                 exit(1)
         else:
